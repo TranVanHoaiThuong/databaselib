@@ -1,3 +1,2 @@
 <?php
-
-echo phpinfo();
+header('Location: /home.php', false);
