@@ -1,7 +1,6 @@
 <?php
 namespace database;
 use database\database;
-use Exception;
 use exceptions\DatabaseException;
 
 class sqlsrv_database extends database {
@@ -25,27 +24,27 @@ class sqlsrv_database extends database {
         ];
         $this->sqlsrv = sqlsrv_connect($this->dbhost, $connectoptions);
         if(!$this->sqlsrv) {
-            throw new Exception("Connect to database failed: " . print_r(sqlsrv_errors(), true));
+            throw new DatabaseException("Cannot connect to database", sqlsrv_errors());
         }
     }
 
     protected function do_query($sql, $params = []) {
         $result = sqlsrv_query($this->sqlsrv, $sql, $params);
         if(!$result) {
-            throw new DatabaseException("Failed on query: $sql", 0, null, sqlsrv_errors());
+            throw new DatabaseException("<strong>Failed on query</strong>: $sql", sqlsrv_errors());
         }
         return $result;
     }
 
     public function create_table($table, $columns) {
         if($this->table_exists($table)) {
-            throw new Exception("Table $table already exists");
+            throw new DatabaseException("Table $table already exists");
         }
         if(!is_array($columns)) {
-            throw new Exception("Columns must be array");
+            throw new DatabaseException("Columns must be array");
         }
         if(empty($columns)) {
-            throw new Exception("Columns in table is empty");
+            throw new DatabaseException("Columns in table is empty");
         }
         $columns = implode(',' . PHP_EOL, $columns);
         $sql = "CREATE TABLE $table ($columns)";

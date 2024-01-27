@@ -1,14 +1,10 @@
 <?php
 namespace exceptions;
 
-use Exception;
-use Throwable;
+use stdClass;
 
-class DatabaseException extends Exception {
-    public function __construct($message, $code = 0, Throwable $previous = null, $errors = []) {
-        foreach($errors as $error) {
-            echo "Error: " . $error['message'] . "<br>";  
-        }
-        echo $message . "<br>";
+class DatabaseException extends CustomException {
+    public function __construct($message, $errors = []) {
+        parent::__construct($message, $errors);
     }
 }
