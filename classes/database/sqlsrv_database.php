@@ -2,6 +2,7 @@
 namespace database;
 use database\database;
 use exceptions\DatabaseException;
+use stdClass;
 
 class sqlsrv_database extends database {
     protected $sqlsrv;
@@ -29,7 +30,11 @@ class sqlsrv_database extends database {
     }
 
     protected function do_query($sql, $params = []) {
-        $result = sqlsrv_query($this->sqlsrv, $sql, $params);
+        try {
+            $result = sqlsrv_query($this->sqlsrv, $sql, $params);
+        } catch (\Throwable $th) {
+            throw $th;
+        }
         if(!$result) {
             throw new DatabaseException("<strong>Failed on query</strong>: $sql", sqlsrv_errors());
         }
@@ -48,7 +53,8 @@ class sqlsrv_database extends database {
         }
         $columns = implode(',' . PHP_EOL, $columns);
         $sql = "CREATE TABLE $table ($columns)";
-        $this->do_query($sql);
+        $doquery = $this->do_query($sql);
+        $this->free_stmt($doquery);
     }
 
     public function table_exists($table) {
@@ -109,18 +115,48 @@ class sqlsrv_database extends database {
             while($row = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
                 $data[] = (object)$row;
             }
+            $this->free_stmt($doquery);
             return $data;
         }
         return false;
     }
 
-    public function need_run_database_script(): bool {
-        $scriptpath = $this->get_database_script_path();
-        return false;
+    public function insert_row($table, $objectdata) {
+        $fields = [];
+        $values = [];
+        $qms = [];
+        foreach($objectdata as $key => $value) {
+            $fields[] = $key;
+            $values[] = $value;
+            $qms[] = '?';
+        }
+
+        $fields = implode(', ', $fields);
+        $qms = implode(', ', $qms);
+        $sql = "INSERT INTO $table ($fields) VALUES($qms)";
+        $this->do_query($sql, $values);
     }
 
     public function run_script_database() {
-        
+        $filescripts = $this->get_script_file_need_run();
+        if(!$filescripts) {
+            return;
+        }
+        $scriptpath = $this->get_database_script_path();
+        foreach($filescripts as $script) {
+            $destination = $scriptpath . '/' . $script;
+            if(!file_exists($destination)) {
+                continue;
+            }
+            $start = time();
+            require $destination;
+            $end = time();
+            $history = new stdClass;
+            $history->filename = $script;
+            $history->timestart = $start;
+            $history->timeend = $end;
+            $a = $this->insert_row('run_script_database_history', $history);
+        }
     }
 
     public function create_column_script($name, $type, $length = '', $notnull = false, $isprimay = false, $identity = false, $default = false) {

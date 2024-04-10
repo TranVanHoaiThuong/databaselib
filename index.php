@@ -1,2 +1,2 @@
 <?php
-header('Location: /home.php', false);
+require_once 'config.php';

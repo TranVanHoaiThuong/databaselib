@@ -40,3 +40,9 @@ function custom_handler_exception(Exception $ex) {
     }
     echo '</div>';
 }
+
+function custom_handler_error($errno, $errstr, $errfile, $errline) {
+    echo "<b>Error:</b> [$errno] $errstr<br>";
+    echo "File: $errfile, Line: $errline<br>";
+    return false;
+}

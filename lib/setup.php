@@ -12,6 +12,7 @@ if(ERROR_DISPLAY === '1') {
     error_reporting(E_ALL);
 }
 
+set_error_handler('custom_handler_error', E_ALL | E_STRICT);
 set_exception_handler('custom_handler_exception');
 
 $DB = new sqlsrv_database();
@@ -49,7 +50,5 @@ if(!$DB->table_exists('users')) {
     ];
     $DB->create_table('users', $columns);
 }
-
-if($DB->need_run_database_script()) {
-    $DB->run_script_database();
-}
+// Check and run script db
+$DB->run_script_database();

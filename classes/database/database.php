@@ -32,6 +32,18 @@ abstract class database {
         return $this->scriptpath;
     }
 
+    protected function get_script_file_need_run() {
+        $scriptpath = $this->get_database_script_path();
+        $oldscript = $this->get_rows_data('run_script_database_history', [], 'filename');
+        $oldscript = array_map(function($old) {
+            return $old->filename;
+        }, $oldscript);
+        $files = scandir($scriptpath);
+        $files = array_values(array_diff($files, ['.', '..']));
+        $files = array_diff($files, $oldscript);
+        return $files;
+    }
+
     abstract protected function connect();
 
     abstract protected function close();
@@ -40,11 +52,11 @@ abstract class database {
 
     abstract public function run_script_database();
 
-    abstract public function need_run_database_script() : bool;
-
     abstract public function create_column_script($name, $type, $length = '', $notnull = false, $isprimay = false, $identity = false, $default = false);
 
     abstract public function get_row_data($table, $params, $fields = '*');
 
     abstract public function get_rows_data($table, $params = [], $fields = '*', $sort = '');
+
+    abstract public function insert_row($table, $objectdata);
 }
