@@ -1,5 +1,5 @@
 <?php
-function custom_handler_exception(Exception $ex) {
+function custom_handler_exception(Exception | Error $ex) {
     $message = $ex->getMessage();
     $errorcode = $ex->getCode();
     $line = $ex->getLine();
