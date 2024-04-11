@@ -23,7 +23,7 @@ if(!file_exists($dblib)) {
 }
 require_once $dblib;
 
-// Lần đầu chạy sẽ tự động sinh ra bảng
+// Adding default table
 if(!$DB->table_exists('run_script_database_history')) {
     $columns = [
         $DB->create_column_script('id', DB_TYPE_BIGINT, '', true, true, true),

@@ -67,7 +67,7 @@ class sqlsrv_database extends database {
         return false;
     }
 
-    public function get_row_data($table, $params, $fields = '*') {
+    public function get_row_data($table, $params, $fields = '*', $sort = '') {
         if(!is_array($params)) {
             throw new DatabaseException('Param $params must be an array!');
         }
@@ -83,6 +83,9 @@ class sqlsrv_database extends database {
         if(!empty($where)) {
             $where = implode(" AND ", $where);
             $sql .= " WHERE $where";
+        }
+        if($sort) {
+            $sql .= " ORDER BY $sort";
         }
         $doquery = $this->do_query($sql);
         if($result = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
@@ -121,7 +124,7 @@ class sqlsrv_database extends database {
         return false;
     }
 
-    public function insert_row($table, $objectdata) {
+    public function insert_row($table, $objectdata, $returnid = true): int|bool {
         $fields = [];
         $values = [];
         $qms = [];
@@ -134,7 +137,12 @@ class sqlsrv_database extends database {
         $fields = implode(', ', $fields);
         $qms = implode(', ', $qms);
         $sql = "INSERT INTO $table ($fields) VALUES($qms)";
-        $this->do_query($sql, $values);
+        $doinsert = $this->do_query($sql, $values);
+        $this->free_stmt($doinsert);
+        if($returnid) {
+            return $this->get_row_data($table, [], 'TOP 1 id', 'id DESC')->id;
+        }
+        return true;
     }
 
     public function run_script_database() {
@@ -155,7 +163,7 @@ class sqlsrv_database extends database {
             $history->filename = $script;
             $history->timestart = $start;
             $history->timeend = $end;
-            $a = $this->insert_row('run_script_database_history', $history);
+            $this->insert_row('run_script_database_history', $history);
         }
     }
 

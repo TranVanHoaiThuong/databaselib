@@ -33,15 +33,26 @@ abstract class database {
     }
 
     protected function get_script_file_need_run() {
+        $scripts = [];
         $scriptpath = $this->get_database_script_path();
+        // Get all script was ran
         $oldscript = $this->get_rows_data('run_script_database_history', [], 'filename');
         $oldscript = array_map(function($old) {
             return $old->filename;
         }, $oldscript);
+        // Start scan new script
         $files = scandir($scriptpath);
         $files = array_values(array_diff($files, ['.', '..']));
-        $files = array_diff($files, $oldscript);
-        return $files;
+        foreach($files as $file) {
+            if(in_array($file, $oldscript)) {
+                continue;
+            }
+            if(!preg_match('/^script_\d{8}\.php$/', $file)) {
+                continue;
+            }
+            $scripts[] = $file;
+        }
+        return $scripts;
     }
 
     abstract protected function connect();
@@ -58,5 +69,5 @@ abstract class database {
 
     abstract public function get_rows_data($table, $params = [], $fields = '*', $sort = '');
 
-    abstract public function insert_row($table, $objectdata);
+    abstract public function insert_row($table, $objectdata, $returnid): int|bool;
 }
