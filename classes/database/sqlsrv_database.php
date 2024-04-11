@@ -29,19 +29,15 @@ class sqlsrv_database extends database {
         }
     }
 
-    protected function do_query($sql, $params = []) {
-        try {
-            $result = sqlsrv_query($this->sqlsrv, $sql, $params);
-        } catch (\Throwable $th) {
-            throw $th;
-        }
+    protected function do_query(string $sql, array $params = []) {
+        $result = sqlsrv_query($this->sqlsrv, $sql, $params);
         if(!$result) {
             throw new DatabaseException("<strong>Failed on query</strong>: $sql", sqlsrv_errors());
         }
         return $result;
     }
 
-    public function create_table($table, $columns) {
+    public function create_table(string $table, array $columns) {
         if($this->table_exists($table)) {
             throw new DatabaseException("Table $table already exists");
         }
@@ -57,7 +53,7 @@ class sqlsrv_database extends database {
         $this->free_stmt($doquery);
     }
 
-    public function table_exists($table) {
+    public function table_exists(string $table): bool {
         $sql = "SELECT COUNT(*) as table_count FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
         $stmtcheck = $this->do_query($sql, [$table]);
         if(sqlsrv_fetch_array($stmtcheck)['table_count'] > 0) {
@@ -65,84 +61,6 @@ class sqlsrv_database extends database {
             return true;
         }
         return false;
-    }
-
-    public function get_row_data($table, $params, $fields = '*', $sort = '') {
-        if(!is_array($params)) {
-            throw new DatabaseException('Param $params must be an array!');
-        }
-        $sql = "SELECT $fields FROM $table";
-        $where = [];
-        foreach($params as $param => $value) {
-            if(is_numeric($value)) {
-                $where[] = $param . ' = ' . $value;
-                continue;
-            }
-            $where[] = $param . " = N'$value'";
-        }
-        if(!empty($where)) {
-            $where = implode(" AND ", $where);
-            $sql .= " WHERE $where";
-        }
-        if($sort) {
-            $sql .= " ORDER BY $sort";
-        }
-        $doquery = $this->do_query($sql);
-        if($result = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
-            $this->free_stmt($doquery);
-            return (object)$result;
-        }
-        return false;
-    }
-
-    public function get_rows_data($table, $params = [], $fields = '*', $sort = '') {
-        $sql = "SELECT $fields FROM $table";
-        $where = [];
-        foreach($params as $param => $value) {
-            if(is_numeric($value)) {
-                $where[] = $param . ' = ' . $value;
-                continue;
-            }
-            $where[] = $param . " = N'$value'";
-        }
-        if(!empty($where)) {
-            $where = implode(" AND ", $where);
-            $sql .= " WHERE $where";
-        }
-        if($sort) {
-            $sql .= " ORDER BY $sort";
-        }
-        $doquery = $this->do_query($sql);
-        if($doquery) {
-            $data = [];
-            while($row = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
-                $data[] = (object)$row;
-            }
-            $this->free_stmt($doquery);
-            return $data;
-        }
-        return false;
-    }
-
-    public function insert_row($table, $objectdata, $returnid = true): int|bool {
-        $fields = [];
-        $values = [];
-        $qms = [];
-        foreach($objectdata as $key => $value) {
-            $fields[] = $key;
-            $values[] = $value;
-            $qms[] = '?';
-        }
-
-        $fields = implode(', ', $fields);
-        $qms = implode(', ', $qms);
-        $sql = "INSERT INTO $table ($fields) VALUES($qms)";
-        $doinsert = $this->do_query($sql, $values);
-        $this->free_stmt($doinsert);
-        if($returnid) {
-            return $this->get_row_data($table, [], 'TOP 1 id', 'id DESC')->id;
-        }
-        return true;
     }
 
     public function run_script_database() {
@@ -167,7 +85,7 @@ class sqlsrv_database extends database {
         }
     }
 
-    public function create_column_script($name, $type, $length = '', $notnull = false, $isprimay = false, $identity = false, $default = false) {
+    public function create_column_script(string $name, string $type, string $length = '', $notnull = false, $isprimay = false, $identity = false, $default = false): string {
         $script = $name . ' ' . $type;
         if($length && !in_array($type, [DB_TYPE_INT, DB_TYPE_BIGINT, DB_TYPE_SMALLINT, DB_TYPE_TINYINT, DB_TYPE_TEXT])) {
             switch($type) {
@@ -202,6 +120,126 @@ class sqlsrv_database extends database {
             $script .= ' DEFAULT ' . $defaultvalue;
         }
         return $script;
+    }
+
+    public function get_row_data(string $table, array $params = [], string $fields = '*', string $sort = ''): object|bool {
+        if(!is_array($params)) {
+            throw new DatabaseException('Param $params must be an array!');
+        }
+        $sql = "SELECT $fields FROM $table";
+        $where = [];
+        foreach($params as $param => $value) {
+            if(is_numeric($value)) {
+                $where[] = $param . ' = ' . $value;
+                continue;
+            }
+            $where[] = $param . " = N'$value'";
+        }
+        if(!empty($where)) {
+            $where = implode(" AND ", $where);
+            $sql .= " WHERE $where";
+        }
+        if($sort) {
+            $sql .= " ORDER BY $sort";
+        }
+        $doquery = $this->do_query($sql);
+        if($result = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
+            $this->free_stmt($doquery);
+            return (object)$result;
+        }
+        return false;
+    }
+
+    public function get_rows_data(string $table, array $params = [], string $fields = '*', string $sort = ''): array|bool {
+        $sql = "SELECT $fields FROM $table";
+        $where = [];
+        foreach($params as $param => $value) {
+            if(is_numeric($value)) {
+                $where[] = $param . ' = ' . $value;
+                continue;
+            }
+            $where[] = $param . " = N'$value'";
+        }
+        if(!empty($where)) {
+            $where = implode(" AND ", $where);
+            $sql .= " WHERE $where";
+        }
+        if($sort) {
+            $sql .= " ORDER BY $sort";
+        }
+        $doquery = $this->do_query($sql);
+        if($doquery) {
+            $data = [];
+            while($row = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
+                $data[] = (object)$row;
+            }
+            $this->free_stmt($doquery);
+            return $data;
+        }
+        return false;
+    }
+
+    public function insert_row(string $table, object $objectdata, $returnid = true): int|bool {
+        $fields = [];
+        $values = [];
+        $qms = [];
+        foreach($objectdata as $key => $value) {
+            $fields[] = $key;
+            $values[] = $value;
+            $qms[] = '?';
+        }
+
+        $fields = implode(', ', $fields);
+        $qms = implode(', ', $qms);
+        $sql = "INSERT INTO $table ($fields) VALUES($qms)";
+        $doinsert = $this->do_query($sql, $values);
+        $this->free_stmt($doinsert);
+        if($returnid) {
+            return $this->get_row_data($table, [], 'TOP 1 id', 'id DESC')->id;
+        }
+        return true;
+    }
+
+    public function update_row(string $table, object $objectdata): bool {
+        if(!isset($objectdata->id) || (isset($objectdata->id) && empty($objectdata->id))) {
+            throw new DatabaseException('Data object must be have a id to update');
+        }
+        if(!is_numeric($objectdata->id)) {
+            throw new DatabaseException('Param id must be a number');
+        }
+        $id = $objectdata->id;
+        unset($objectdata->id);
+        $set = [];
+        foreach($objectdata as $key => $value) {
+            if(is_numeric($value)) {
+                $set[] = $key . ' = ' . $value;
+                continue;
+            }
+            $set[] = $key . " = N'" . $value . "'";
+        }
+        if(empty($set)) {
+            throw new DatabaseException('Data to update can not be empty');
+        }
+        $set = implode(',', $set);
+        $sql = "UPDATE $table SET $set WHERE id = ?";
+        $doupdate = $this->do_query($sql, [$id]);
+        $this->free_stmt($doupdate);
+        return true;
+    }
+
+    public function delete_rows(string $table, array $conditions) {
+        if(empty($conditions)) {
+            throw new DatabaseException('Condition can not be empty');
+        }
+        $where = [];
+        $params = [];
+        foreach($conditions as $column => $value) {
+            $where[] = "$column = ?";
+            $params[] = $value;
+        }
+        $sql = "DELETE $table WHERE " . implode(" AND ", $where);
+        $dodelete = $this->do_query($sql, $params);
+        $this->free_stmt($dodelete);
     }
 
     protected function free_stmt($stmt) {
