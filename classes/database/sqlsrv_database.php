@@ -242,6 +242,22 @@ class sqlsrv_database extends database {
         $this->free_stmt($dodelete);
     }
 
+    public function get_rows_data_sql(string $sql, array $params = []): array|bool {
+        if (strpos(strtoupper($sql), 'SELECT') !== 0) {
+            throw new DatabaseException('Query must be start with SELECT');
+        }
+        $doquery = $this->do_query($sql, $params);
+        if($doquery) {
+            $data = [];
+            while($row = sqlsrv_fetch_array($doquery, SQLSRV_FETCH_ASSOC)) {
+                $data[] = (object)$row;
+            }
+            $this->free_stmt($doquery);
+            return $data;
+        }
+        return false;
+    }
+
     protected function free_stmt($stmt) {
         sqlsrv_free_stmt($stmt);
     }

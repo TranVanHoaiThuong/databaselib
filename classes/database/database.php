@@ -1,6 +1,7 @@
 <?php
 namespace database;
 
+use exceptions\DatabaseException;
 abstract class database {
     protected $dbtype;
     protected $dbhost;
@@ -129,7 +130,7 @@ abstract class database {
      * @param array $params Condition in WHERE clause
      * @param string $field Field to select
      * @param string $sort Order by clause
-     * @return array|bool
+     * @return object|bool
      */
     abstract public function get_row_data(string $table, array $params = [], string $fields = '*', string $sort = ''): object|bool;
 
@@ -167,4 +168,34 @@ abstract class database {
      * @return bool
      */
     abstract public function delete_rows(string $table, array $conditions);
+
+    /**
+     * Get multi row with sql
+     * @param string $sql Query
+     * @param array $params Param in query
+     * @return array|bool
+     */
+    abstract public function get_rows_data_sql(string $sql, array $params = []): array|bool;
+
+    /**
+     * Insert multi row
+     * @param string $table Table name
+     * @param array $rows Array of row to insert
+     * @param bool $returnid
+     * @return int|bool
+     */
+    public function insert_rows(string $table, array $rows, bool $returnid = true): array|bool {
+        if(empty($rows)) {
+            throw new DatabaseException('Insert data can not be empty!');
+        }
+        $return = [];
+        foreach($rows as $row) {
+            if(is_array($row)) {
+                $row = (object)$row;
+            }
+            unset($row->id);
+            $return[] = $this->insert_row($table, $row, $returnid);
+        }
+        return $returnid ? $return : true;
+    }
 }
