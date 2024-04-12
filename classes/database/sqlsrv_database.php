@@ -63,6 +63,46 @@ class sqlsrv_database extends database {
         return false;
     }
 
+    public function column_exists(string $table, string $column): bool {
+        if(!$this->table_exists($table)) {
+            return false;
+        }
+        $sql = "SELECT COLUMN_NAME 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = ? AND COLUMN_NAME = ?";
+        $checkcolumn = $this->do_query($sql, [$table, $column]);
+        if(sqlsrv_has_rows($checkcolumn)) {
+            $this->free_stmt($checkcolumn);
+            return true;
+        }
+        $this->free_stmt($checkcolumn);
+        return false;
+    }
+
+    public function add_column(string $table, string $column) {
+        $sql = "ALTER TABLE $table
+                ADD $column";
+        $addcolumn = $this->do_query($sql);
+        $this->free_stmt($addcolumn);
+    }
+
+    public function rename_column(string $table, string $oldname, string $newname) {
+        if(!$this->column_exists($table, $oldname)) {
+            throw new DatabaseException("Column $oldname not exists in table $table to rename");
+        }
+        sqlsrv_begin_transaction($this->sqlsrv);
+        try {
+            $sql = "EXEC sp_rename ?,  ?, 'COLUMN'";
+            $stmt = sqlsrv_prepare($this->sqlsrv, $sql, [$table . '.' . $oldname, $newname]);
+            sqlsrv_execute($stmt);
+            sqlsrv_commit($this->sqlsrv);
+            $this->free_stmt($stmt);
+        } catch (\Throwable $th) {
+            sqlsrv_rollback($this->sqlsrv);
+            throw $th;
+        }
+    }
+
     public function run_script_database() {
         $filescripts = $this->get_script_file_need_run();
         if(!$filescripts) {

@@ -123,6 +123,29 @@ abstract class database {
      * @param array $columns List column
      */
     abstract public function create_table(string $table, array $columns);
+
+    /**
+     * Add new column to exists table
+     * @param string $table Table name
+     * @param string $column Column name
+     * @return bool
+     */
+    abstract public function column_exists(string $table, string $column): bool;
+
+    /**
+     * Add new column to exists table
+     * @param string $table Table name
+     * @param string $column Create from method create_column_script
+     */
+    abstract public function add_column(string $table, string $column);
+
+    /**
+     * Rename column in table. Be carefull with this action
+     * @param string $table Table name
+     * @param string $oldname Current name of column need to rename
+     * @param string $newname New name of column need to rename
+     */
+    abstract public function rename_column(string $table, string $oldname, string $newname);
     
     /**
      * Get single row
@@ -197,5 +220,19 @@ abstract class database {
             $return[] = $this->insert_row($table, $row, $returnid);
         }
         return $returnid ? $return : true;
+    }
+
+    /**
+     * Add new multi column to exists table
+     * @param string $table Table name
+     * @param array $column Array of columns is created from method create_column_script
+     */
+    public function add_columns(string $table, array $columns) {
+        if(empty($columns)) {
+            throw new DatabaseException('Columns can not be empty!');
+        }
+        foreach($columns as $column) {
+            $this->add_column($table, $column);
+        }
     }
 }
