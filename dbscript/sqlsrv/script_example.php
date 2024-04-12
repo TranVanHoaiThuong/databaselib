@@ -1,6 +1,6 @@
 <?php
-// You must rename or create a new file named in the format: script_date.php
-// For example, my date format is dd/mm/yyyy, then my file name is script_10042024.php
+// You must rename or create a new file named in the format: script_unixtime.php
+// For example, my unixtime is 1712806913, then my file name is script_1712806913.php
 // Example code here
 global $DB;
 if(!$DB->table_exists('categories')) {
