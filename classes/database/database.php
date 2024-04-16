@@ -146,6 +146,20 @@ abstract class database {
      * @param string $newname New name of column need to rename
      */
     abstract public function rename_column(string $table, string $oldname, string $newname);
+
+    /**
+     * Change type of column
+     * @param string $table Table name
+     * @param string $column Create from method create_column_script
+     */
+    abstract public function change_column_type(string $table, string $column);
+
+    /**
+     * Drop a column. Be carefull with this action
+     * @param string $table Table name
+     * @param string $column Column need to drop
+     */
+    abstract public function drop_column(string $table, string $column);
     
     /**
      * Get single row

@@ -103,6 +103,20 @@ class sqlsrv_database extends database {
         }
     }
 
+    public function change_column_type(string $table, string $column) {
+        $sql = "ALTER TABLE $table
+                ALTER COLUMN $column";
+        $changetype = $this->do_query($sql);
+        $this->free_stmt($changetype);
+    }
+
+    public function drop_column(string $table, string $column) {
+        $sql = "ALTER TABLE $table
+                DROP COLUMN $column";
+        $dropcol = $this->do_query($sql);
+        $this->free_stmt($dropcol);
+    }
+
     public function run_script_database() {
         $filescripts = $this->get_script_file_need_run();
         if(!$filescripts) {
